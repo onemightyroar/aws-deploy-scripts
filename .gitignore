@@ -3,3 +3,7 @@
 output/*
 temp/*
 aws/sdk/config.inc.php
+
+deploy_log
+
+includes/deploy-config.php

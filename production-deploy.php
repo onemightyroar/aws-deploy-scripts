@@ -1,13 +1,16 @@
 <pre><?php
-	ini_set('display_errors',1); 
-	error_reporting(E_ALL);
 
-	require_once 'includes/deploy.php';
+	require_once 'includes/deploy-config.php';
 	
 	if (class_exists('Deploy')){
 		$options = array(
 			'compression' 	=> 'gzip',
-			'notification'	=> true
+			'bucket'		=> 'wouldyourather',
+			'notification'	=> true,
+			'assets'		=> array(
+				'http://localhost:8888/web-sandbox/filedump/bookmarklet.js',
+				'http://localhost:8888/web-sandbox/filedump/alabama.jpg'
+			)
 		);
 		$deploy = new Deploy($options);
 	}else{
@@ -36,6 +39,7 @@
 		<?php
 			if(!$dry_run){
 				//$deploy->update_assets();
+				$deploy->download_assets(false);
 			}
 		?>
 	</pre>
