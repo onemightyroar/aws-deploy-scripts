@@ -10,42 +10,54 @@
 		private $bucket;
 		private $ses_subscription;
 		
-		//Turn logging on by default
-		private $logging = true;
-		
 		//AWS Service Objects
 		private $s3;
 		private $cdn;
 		private $sns;
 		
+		private $logging;
+		
 		//Count mishaps
 		private $error_count = 0;
 		
 		public function __construct($options = array()){
-		
-			extract($options);
 			
-			if(isset($distribution)){
-				$this->distribution = $distribution;
+			global $config;
+			
+			/*
+				For each of the main options, check for an argument
+				If there isn't one, default to the config file
+			*/
+			
+			if(isset($options['distribution'])){
+				$this->distribution = $options['distribution'];
+			}else{
+				$this->distribution = $config['distribution'];
 			}
 			
-			if(isset($bucket)){
-				$this->bucket = $bucket;
+			if(isset($options['bucket'])){
+				$this->bucket = $options['bucket'];
+			}else{
+				$this->bucket = $config['bucket'];
 			}
 			
-			if(isset($ses_subscription)){
-				$this->ses_subscription = $ses_subscription;
+			if(isset($options['ses_subscription'])){
+				$this->ses_subscription = $options['ses_subscription'];
+			}else{
+				$this->ses_subscription = $config['ses_subscription'];
 			}
 			
-			if(isset($assets)){
-				$this->assets = $assets;
+			if(isset($options['assets'])){
+				$this->assets = $options['assets'];
+			}else{
+				$this->assets = $config['assets'];
 			}
 			
-			//Remove time limit for upload actions
-			set_time_limit(0);
-			
-			// Populate AWS objects
-			require_once DEPLOY_BASEPATH . 'aws/sdk/sdk.class.php';
+			if(isset($options['logging'])){
+				$this->logging = $options['logging'];
+			}else{
+				$this->logging = $config['logging'];
+			}
 			
 			$this->s3 = new AmazonS3();
 			$this->cdn = new AmazonCloudFront();

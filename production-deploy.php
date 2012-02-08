@@ -4,9 +4,6 @@
 	
 	if (class_exists('Deploy')){
 		$options = array(
-			'compression' 	=> 'gzip',
-			'bucket'		=> 'wouldyourather',
-			'notification'	=> true,
 			'assets'		=> array(
 				'http://localhost:8888/web-sandbox/filedump/bookmarklet.js',
 				'http://localhost:8888/web-sandbox/filedump/alabama.jpg'
