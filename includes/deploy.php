@@ -16,11 +16,12 @@
 		private $sns;
 		
 		private $logging;
+		private $table_row = '<tr><td>%s</td><td>%s</td></tr>';
 		
 		//Count mishaps
 		private $error_count = 0;
 		
-		public function __construct($options = array()){
+		public function __construct($assets = array(), $options = array()){
 			
 			global $config;
 			
@@ -47,8 +48,8 @@
 				$this->ses_subscription = $config['ses_subscription'];
 			}
 			
-			if(isset($options['assets'])){
-				$this->assets = $options['assets'];
+			if(isset($assets)){
+				$this->assets = $assets;
 			}else{
 				$this->assets = $config['assets'];
 			}
@@ -62,6 +63,9 @@
 			$this->s3 = new AmazonS3();
 			$this->cdn = new AmazonCloudFront();
 			$this->sns = new AmazonSNS();
+			
+			
+			echo sprintf($this->table_row, 'START', '');
 			
 			$this->add_to_log('Script started');
 			$this->add_to_log('Bucket: ' . $this->bucket . ' / ' . ' Distribution: ' . $this->distribution);
@@ -96,6 +100,7 @@
 				curl_close($ch);
 				fclose($fp);
 				
+				echo sprintf($this->table_row, 'DOWNLOAD', $asset . ' -> ' . $current_asset);
 				$this->add_to_log('DOWNLOAD: ' . $asset . ' -> ' . $current_asset);
 				
 				//Compress and upload unless otherwise flagged
@@ -168,10 +173,12 @@
 			$response = $this->s3->create_object($this->bucket, $file_name, $file_details);
 			if($response->isOK()){
 				echo 'File uploaded successfully';
+				echo sprintf($this->table_row, 'UPLOAD', $file_name . ' -> ' . $this->bucket . ' in ' . $s3_path);
 				$this->add_to_log('UPLOAD: ' . $file_name . ' to ' . $this->bucket . ' in ' . $s3_path);
 				return true;
 			}else{
 				echo 'File was not uploaded';
+				echo sprintf($this->table_row, 'ERROR', $file_name . ' -> ' . $this->bucket . ' in ' . $s3_path);
 				$this->add_to_log('ERROR: ' . $file_name . ' was not uploaded');
 				$this->error_count++;
 				return false;
@@ -202,10 +209,12 @@
 			if($this->error_count > 0){
 				$sns_subject = "Deploy Script Successful";
 				$sns_message = "Deployment script ran successfully at " . date('F jS Y h:i:s A');
+				echo sprintf($this->table_row, 'COMPLETE', 'Deployment finished successfully');
 				$this->add_to_log("Completed deployment successfully");
 			}else{
 				$sns_subject = "Deploy Script Failed";
-				$sns_message = "Deployment script ran with errors to run at " . date('F jS Y h:i:s A');
+				$sns_message = "Deployment script ran with errors at " . date('F jS Y h:i:s A');
+				echo sprintf($this->table_row, 'COMPLETE', 'Deployment finished with errors');
 				$this->add_to_log("Completed deployment with errors");
 			}
 			
@@ -218,6 +227,7 @@
 			);
 			
 			if($response->isOK()){
+				echo sprintf($this->table_row, 'NOTIFY', 'Sent deploy summary');
 				$this->add_to_log('Sent deploy summary');
 			}
 			
