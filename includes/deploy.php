@@ -5,8 +5,12 @@
 		//Files to modify
 		private $assets;
 		
+		//Paths of files uploaded to S3
+		private $uploaded_assets;
+		
 		//AWS Specifics
 		private $distribution;
+		private $flush_cdn;
 		private $bucket;
 		private $ses_subscription;
 		private $s3_path;
@@ -39,6 +43,12 @@
 				$this->distribution = $options['distribution'];
 			}else{
 				$this->distribution = $config['distribution'];
+			}
+			
+			if(isset($options['flush_cdn'])){
+				$this->flush_cdn = $options['flush_cdn'];
+			}else{
+				$this->flush_cdn = $config['flush_cdn'];
 			}
 			
 			if(isset($options['bucket'])){
@@ -92,15 +102,18 @@
 			//Download the files for S3
 			$this->download_assets();
 			//We've uploaded the new stuff. Dump the old stuff.
-			//$this->flush_cdn();
+			if($this->flush_cdn) $this->flush_cdn();
 			//Send the results
 			//$this->send_notification();
+			echo sprintf($this->table_row, 'END', 'Deployment completed with ' . $this->error_count . ' error(s).');
 		}
 		
 		/*
 			Download the files to the organized directories
 		*/
 		public function download_assets(){
+			
+			$this->uploaded_assets = array();
 			
 			foreach($this->assets as $asset){
 				
@@ -207,6 +220,7 @@
 			if($response->isOK()){
 				echo sprintf($this->table_row, 'UPLOAD', $file_to_upload . ' -> ' . $this->bucket . '/' . $file_name);
 				$this->add_to_log('UPLOAD: ' . $file_to_upload . ' -> ' . $this->bucket . '/' . $file_name);
+				array_push($this->uploaded_assets, $file_name);
 				return true;
 			}else{
 				echo sprintf($this->table_row, 'ERROR', $file_to_upload . ' -> ' . $this->bucket . '/' . $s3_path);
@@ -217,18 +231,22 @@
 		}
 		
 		/*
-			Flush Cloudfront CDN (Doesn't work yet)
+			Flush Cloudfront CDN
 		*/
 		public function flush_cdn(){
 			
-			//Flush everything for good measure. Clean this up later
-			$invalidation_list = array();
+			//Flush everything for good measure.
+			$invalidation_list = $this->uploaded_assets;
 			
-			$invalidate_response = $this->cdn->create_invalidation($this->distribution_id, 'deploy-flush-' . time(), $invalidation_list);
-			echo ($invalidate_response ? 'Invalidation Request Sent' : 'Invalidation Request Failed');
-			if($invalidate_response == false){
+			$invalidate_response = $this->cdn->create_invalidation($this->distribution, 'deploy-flush-' . time(), $invalidation_list);
+			
+			if($invalidate_response == true){
+				echo sprintf($this->table_row, 'FLUSH', 'Invalidation Request Sent');
+				$this->add_to_log('FLUSH: Invalidation request sent');
+			}else{
+				echo sprintf($this->table_row, 'ERROR', 'Invalidation Request Failed');
 				$this->add_to_log('ERROR: Invalidation request failed');
-				$this->error_count++;
+				$this->error_count++;	
 			}
 		}
 		

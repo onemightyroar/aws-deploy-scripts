@@ -19,12 +19,13 @@ $config = array();
 
 $config['distribution'] 	= '';		//Target Cloudfront Distribution
 $config['bucket']			= '';		//Target S3 Bucket
-$config['s3_path']			= '';					//Default path for S3 bucket uploads
+$config['s3_path']			= '';		//Default path for S3 bucket uploads
 $config['compression']		= '';		//Type of compression to use (none, gzip)
 $config['ses_subscription']	= '';		//ARN of SES subscription for notifications
 $config['notification']		= false;	//Send status updates (requires SES active)
 $config['logging']			= true;		//Turn on/off logging
-$config['assets']			= array();				//Assets to download and publish (Phase out?)
+$config['assets']			= array();	//Assets to download and publish (Phase out?)
+$config['flush_cdn']		= false;	//Flush Cloudfront if enabled
 
 // AWS PHP SDK
 require_once DEPLOY_BASEPATH . 'aws/sdk/sdk.class.php';
