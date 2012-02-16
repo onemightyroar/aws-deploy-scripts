@@ -284,5 +284,38 @@
 			return $response->isOK();
 		}
 		
+		public function show_config(){
+			echo '<table>
+			<thead>
+				<th>Setting</th>
+				<th>Value</th>
+			</thead>
+			<tr>
+				<td>CloudFront Distribution</td>
+				<td>'.$this->distribution.'</td>
+			</tr>
+			<tr>
+				<td>S3 Bucket</td>
+				<td>'.$this->bucket.'</td>
+			</tr>
+			<tr>
+				<td>Flush CDN</td>
+				<td>'. $this->flush_cdn .'</td>
+			</tr>
+			<tr>
+				<td>S3 Path</td>
+				<td>'.$this->s3_path.'</td>
+			</tr>
+			<tr>
+				<td>Compression</td>
+				<td>'.$this->compression.'</td>
+			</tr>
+			<tr>
+				<td>Logging</td>
+				<td>'.$this->logging.'</td>
+			</tr>
+			</table>';
+		}
+		
 	}
 ?>
