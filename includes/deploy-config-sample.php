@@ -19,6 +19,7 @@ $config = array();
 
 $config['distribution'] 	= '';		//Target Cloudfront Distribution
 $config['bucket']			= '';		//Target S3 Bucket
+$config['s3_path']			= '';					//Default path for S3 bucket uploads
 $config['compression']		= '';		//Type of compression to use (none, gzip)
 $config['ses_subscription']	= '';		//ARN of SES subscription for notifications
 $config['notification']		= false;	//Send status updates (requires SES active)

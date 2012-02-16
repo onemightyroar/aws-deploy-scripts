@@ -9,6 +9,10 @@
 		private $distribution;
 		private $bucket;
 		private $ses_subscription;
+		private $s3_path;
+		
+		//File Handling
+		private $compression;
 		
 		//AWS Service Objects
 		private $s3;
@@ -28,6 +32,7 @@
 			/*
 				For each of the main options, check for an argument
 				If there isn't one, default to the config file
+				(These can probably be condensed better)
 			*/
 			
 			if(isset($options['distribution'])){
@@ -60,12 +65,23 @@
 				$this->logging = $config['logging'];
 			}
 			
+			if(isset($options['s3_path'])){
+				$this->s3_path = $options['s3_path'];
+			}else{
+				$this->s3_path = $config['s3_path'];
+			}
+			
+			if(isset($options['compression'])){
+				$this->compression = $options['compression'];
+			}else{
+				$this->compression = $config['compression'];
+			}
+			
 			$this->s3 = new AmazonS3();
 			$this->cdn = new AmazonCloudFront();
 			$this->sns = new AmazonSNS();
 			
-			
-			echo sprintf($this->table_row, 'START', '');
+			echo sprintf($this->table_row, 'START', 'Bucket: ' . $this->bucket . ' <br/> ' . ' Distribution: ' . $this->distribution);
 			
 			$this->add_to_log('Script started');
 			$this->add_to_log('Bucket: ' . $this->bucket . ' / ' . ' Distribution: ' . $this->distribution);
@@ -84,7 +100,7 @@
 		/*
 			Download the files to the organized directories
 		*/
-		public function download_assets($compress = true){
+		public function download_assets(){
 			
 			foreach($this->assets as $asset){
 				
@@ -104,10 +120,13 @@
 				$this->add_to_log('DOWNLOAD: ' . $asset . ' -> ' . $current_asset);
 				
 				//Compress and upload unless otherwise flagged
-				if($compress == true){
+				if($this->compression == 'gzip'){
 					$compressed_file = $this->compress_asset($current_asset, $path_parts);
 					if($compressed_file) $this->add_to_log('GZIP: ' . $current_asset . ' -> ' . $compressed_file);
-					$this->upload_aws_asset($compressed_file, 'v2/');
+					$this->upload_aws_asset($compressed_file);
+				}else{
+					//Don't compress
+					$this->upload_aws_asset($current_asset);
 				}
 			}
 			
@@ -135,7 +154,6 @@
 		*/
 		public function compress_asset($current_asset, $path_parts){
 
-			//dirname(__FILE__)
 			// Name of the gz file we are creating
 			$gzfile = DEPLOY_BASEPATH . 'output/' . $path_parts['filename'] . '.gz.' . $path_parts['extension'];
 
@@ -148,6 +166,10 @@
 			// Close the gz file and we are done
 			gzclose($fp);
 			
+			//Logging
+			echo sprintf($this->table_row, 'GZIP', $current_asset . ' -> ' . $gzfile);
+			$this->add_to_log('GZIP: ' . $current_asset . ' -> ' . $gzfile);
+			
 			//Return the file location for AWS to upload
 			return $gzfile;
 			
@@ -156,29 +178,38 @@
 		/*
 			Upload asset to S3
 		*/
-		public function upload_aws_asset($asset, $s3_path){
+		public function upload_aws_asset($asset, $s3_path = null){
 			
 			$path_parts = pathinfo($asset);
 			
-			$file_name = $s3_path . $path_parts['extension'] . '/' . $path_parts['basename'];
+			//Default to config file S3 path when none was given
+			if($s3_path == null || empty($s3_path)){
+				$s3_path = $this->s3_path;
+			}
+			
+			$file_name =  $s3_path . $path_parts['basename'];
+			$file_to_upload =  DEPLOY_BASEPATH . 'output/' . $path_parts['basename'];
+			
+			$file_headers = array();
+			
+			if($this->compression == 'gzip'){
+				$file_headers['content-encoding'] = 'gzip';
+			}
 			
 			$file_details = array(
-				'fileUpload' => DEPLOY_BASEPATH . 'output/' . $path_parts['basename'],
+				'fileUpload' => $file_to_upload,
 				'acl' => AmazonS3::ACL_PUBLIC,
-				'headers' => array(
-					'content-encoding' => 'gzip',
-				)
+				'headers' => $file_headers
 			);
 			
 			$response = $this->s3->create_object($this->bucket, $file_name, $file_details);
+			
 			if($response->isOK()){
-				echo 'File uploaded successfully';
-				echo sprintf($this->table_row, 'UPLOAD', $file_name . ' -> ' . $this->bucket . ' in ' . $s3_path);
-				$this->add_to_log('UPLOAD: ' . $file_name . ' to ' . $this->bucket . ' in ' . $s3_path);
+				echo sprintf($this->table_row, 'UPLOAD', $file_to_upload . ' -> ' . $this->bucket . '/' . $file_name);
+				$this->add_to_log('UPLOAD: ' . $file_to_upload . ' -> ' . $this->bucket . '/' . $file_name);
 				return true;
 			}else{
-				echo 'File was not uploaded';
-				echo sprintf($this->table_row, 'ERROR', $file_name . ' -> ' . $this->bucket . ' in ' . $s3_path);
+				echo sprintf($this->table_row, 'ERROR', $file_to_upload . ' -> ' . $this->bucket . '/' . $s3_path);
 				$this->add_to_log('ERROR: ' . $file_name . ' was not uploaded');
 				$this->error_count++;
 				return false;

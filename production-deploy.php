@@ -1,8 +1,6 @@
 <?php
-
-	require_once 'includes/deploy-config.php';
-
-?></pre>
+	require_once 'includes/deploy-config.php'; 
+?>
 <!DOCTYPE html>
 <html>
 <head>
@@ -10,7 +8,7 @@
 	<title>Production Deploy Hook</title>
 	<style>
 		body{
-			font-family:"Georgia", Times, serif;
+			font-family:"Panic Sans", "Monaco", "Courier New", serif;
 		}
 		table{}
 		table thead tr{
@@ -23,6 +21,11 @@
 		}
 		table td, table th{
 			padding:15px;
+		}
+		.live{
+			background:#6FBF4D;
+			color:#FFF;
+			padding:5px 10px;
 		}
 	</style>
 </head>
@@ -51,14 +54,13 @@
 		$dry_run = (isset($_GET['dry_run']) && !empty($_GET['dry_run']) ? true : false);
 		
 		if($dry_run){
-			echo '<p><em>Dry Run</em></p>';
+			echo '<p class="dry">Dry Run</p>';
 		}else{
-			echo '<p><em>Live Run</em></p>';
+			echo '<p class="live">Live Run</p>';
 		}
 
 		if(!$dry_run){
-			//$deploy->update_assets();
-			$deploy->download_assets(false);
+			$deploy->update_assets();
 		}
 		?>
 	</table>
